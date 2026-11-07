@@ -55,3 +55,35 @@ func SaveFile(path string, s Snapshot) error {
 	}
 	return nil
 }
+
+// FileStore — MemoryStore'ning hamma metodlari (embedding orqali) va har bir
+// Save'dan keyin faylga yozish. Routes(), Requests(), Matches() o'zgarishsiz
+// MemoryStore'dan keladi.
+type FileStore struct {
+	*MemoryStore
+	path string
+}
+
+// OpenFileStore faylni bir marta o'qiydi. Fayl buzilgan bo'lsa ErrCorruptData.
+func OpenFileStore(path string) (*FileStore, error) {
+	data, err := LoadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	return &FileStore{MemoryStore: &MemoryStore{data: data}, path: path}, nil
+}
+
+func (s *FileStore) SaveRoute(r rides.DriverRoute) (rides.DriverRoute, error) {
+	r, _ = s.MemoryStore.SaveRoute(r)
+	return r, SaveFile(s.path, s.data)
+}
+
+func (s *FileStore) SaveRequest(q rides.PassengerRequest) (rides.PassengerRequest, error) {
+	q, _ = s.MemoryStore.SaveRequest(q)
+	return q, SaveFile(s.path, s.data)
+}
+
+func (s *FileStore) SaveMatch(m ridematching.RideMatch) (ridematching.RideMatch, error) {
+	m, _ = s.MemoryStore.SaveMatch(m)
+	return m, SaveFile(s.path, s.data)
+}

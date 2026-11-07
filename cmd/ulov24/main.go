@@ -14,7 +14,7 @@ import (
 )
 
 // Version — dasturning qaysi bosqichda ekani (git tag bilan bir xil).
-const Version = "c1-m7"
+const Version = "c1-m8"
 
 const usage = `Ishlatish: ulov24 <buyruq>
 Buyruqlar:
@@ -85,21 +85,28 @@ func dataPath() string {
 	return "ulov24.json"
 }
 
-func load() store.Snapshot {
-	s, err := store.LoadFile(dataPath())
+// openStore ma'lumotlar faylini ochadi. ULOV24_LOG=1 bo'lsa, har bir saqlash
+// stderr'ga yoziladi.
+func openStore() store.Store {
+	fs, err := store.OpenFileStore(dataPath())
 	if errors.Is(err, store.ErrCorruptData) {
 		fail("Ma'lumot fayli buzilgan: " + dataPath())
 	}
 	if err != nil {
 		fail("Ma'lumot faylini o'qib bo'lmadi: " + err.Error())
 	}
-	return s
+	if os.Getenv("ULOV24_LOG") == "1" {
+		return store.LoggingStore{Store: fs, Log: os.Stderr}
+	}
+	return fs
 }
 
-func save(s store.Snapshot) {
-	if err := store.SaveFile(dataPath(), s); err != nil {
-		fail("Saqlab bo'lmadi: " + err.Error())
+// must — saqlash yoki o'qish xatosida dasturni to'xtatadi.
+func must[T any](v T, err error) T {
+	if err != nil {
+		fail("Ma'lumot bilan ishlab bo'lmadi: " + err.Error())
 	}
+	return v
 }
 
 func now() time.Time {
@@ -185,14 +192,12 @@ func addRoute(args []string) {
 		price = &p
 	}
 
-	s := load()
-	r := rides.DriverRoute{
-		ID: nextRouteID(s), DriverUserID: user(1), FromLocationID: from, ToLocationID: to,
+	s := openStore()
+	r := must(s.SaveRoute(rides.DriverRoute{
+		DriverUserID: user(1), FromLocationID: from, ToLocationID: to,
 		DepartureAt: dep, SeatsTotal: seats, SeatsRemaining: seats, PricePerSeat: price,
 		TripMode: mode, Status: rides.DriverRouteOpen,
-	}
-	s.Routes = append(s.Routes, r)
-	save(s)
+	}))
 	fmt.Printf("Yo'nalish #%d qo'shildi\n", r.ID)
 }
 
@@ -210,64 +215,64 @@ func addRequest(args []string) {
 		fail(err.Error())
 	}
 
-	s := load()
-	q := rides.PassengerRequest{
-		ID: nextRequestID(s), PassengerUserID: user(2), FromLocationID: from, ToLocationID: to,
+	s := openStore()
+	q := must(s.SaveRequest(rides.PassengerRequest{
+		PassengerUserID: user(2), FromLocationID: from, ToLocationID: to,
 		DesiredDepartureFrom: windowFrom, DesiredDepartureTo: windowTo, PassengerCount: count,
 		TripMode: mode, Status: rides.PassengerRequestOpen,
-	}
-	s.Requests = append(s.Requests, q)
-	save(s)
+	}))
 	fmt.Printf("So'rov #%d qo'shildi\n", q.ID)
 }
 
 func showFeed(args []string) {
 	current := now()
-	s := load()
-	routes := s.Routes
+	routes := must(openStore().Routes())
 	if len(args) >= 2 {
 		from, to := parseDirection(args[0], args[1])
 		routes = ridematching.IndexByDirection(routes)[ridematching.Direction{From: from, To: to}]
 	}
-	for _, r := range ridematching.Feed(routes, current) {
+	page := rides.Paginate(ridematching.Feed(routes, current), 0, 10)
+	for _, r := range page.Items {
 		fmt.Println(routeLine(r, r.TripMode.Label()))
 	}
+	fmt.Printf("Ko'rsatildi: %d / %d\n", len(page.Items), page.Total)
 }
 
 // createMatches har bir ochiq so'rov uchun mos yo'nalishlarni topadi va hali
 // faol mosligi yo'q juftliklar uchun yangi moslik yaratadi.
 func createMatches() {
 	current := now()
-	s := load()
-	byDirection := ridematching.IndexByDirection(s.Routes)
+	s := openStore()
+	byDirection := ridematching.IndexByDirection(must(s.Routes()))
+	matches := must(s.Matches())
 	created := 0
-	for i := range s.Requests {
-		q := &s.Requests[i]
+	for _, q := range must(s.Requests()) {
 		if q.Status != rides.PassengerRequestOpen && q.Status != rides.PassengerRequestMatched {
 			continue
 		}
 		for _, r := range byDirection[ridematching.Direction{From: q.FromLocationID, To: q.ToLocationID}] {
-			if ridematching.Compatible(r, *q, current) != nil || hasActiveMatch(s, r.ID, q.ID) {
+			if ridematching.Compatible(r, q, current) != nil || hasActiveMatch(matches, r.ID, q.ID) {
 				continue
 			}
-			m := ridematching.RideMatch{
+			m := must(s.SaveMatch(ridematching.RideMatch{
 				RideMatchState: ridematching.RideMatchState{
-					ID: nextMatchID(s), DriverStatus: ridematching.DualStatusPending,
-					PassengerStatus: ridematching.DualStatusPending, OverallStatus: ridematching.MatchPending,
+					DriverStatus: ridematching.DualStatusPending, PassengerStatus: ridematching.DualStatusPending,
+					OverallStatus: ridematching.MatchPending,
 				},
 				DriverRouteID: r.ID, PassengerRequestID: q.ID, PassengerCount: q.PassengerCount,
+			}))
+			matches = append(matches, m)
+			if q.Status != rides.PassengerRequestMatched {
+				q.Status = rides.PassengerRequestMatched
+				must(s.SaveRequest(q))
 			}
-			s.Matches = append(s.Matches, m)
-			q.Status = rides.PassengerRequestMatched
 			created++
 			fmt.Printf("Moslik #%d: so'rov #%d → yo'nalish #%d\n", m.ID, q.ID, r.ID)
 		}
 	}
 	if created == 0 {
 		fmt.Println("Yangi moslik yo'q")
-		return
 	}
-	save(s)
 }
 
 func accept(matchArg, roleArg string) {
@@ -280,12 +285,12 @@ func accept(matchArg, roleArg string) {
 		fail("Moslik raqami son bo'lishi kerak: " + matchArg)
 	}
 
-	s := load()
-	m := findMatch(s, id)
+	s := openStore()
+	m := findByID(must(s.Matches()), id, func(m ridematching.RideMatch) int64 { return m.ID })
 	if m == nil {
 		fail(fmt.Sprintf("Bunday moslik yo'q: %d", id))
 	}
-	route := findRoute(s, m.DriverRouteID)
+	route := findByID(must(s.Routes()), m.DriverRouteID, func(r rides.DriverRoute) int64 { return r.ID })
 	if route == nil {
 		fail(fmt.Sprintf("Moslikdagi yo'nalish topilmadi: %d", m.DriverRouteID))
 	}
@@ -295,7 +300,7 @@ func accept(matchArg, roleArg string) {
 	case errors.Is(err, ridematching.ErrTerminalRideMatch):
 		fail(fmt.Sprintf("Moslik #%d allaqachon yopilgan", m.ID))
 	case errors.Is(err, ridematching.ErrRideCapacityFull):
-		save(s) // moslik closed_capacity_full holatida saqlanadi
+		must(s.SaveMatch(*m)) // moslik closed_capacity_full holatida saqlanadi
 		fail(fmt.Sprintf("Moslik #%d: %s · joy yetmadi", m.ID, m.OverallStatus))
 	case err != nil:
 		fail("Xato: " + err.Error())
@@ -303,11 +308,14 @@ func accept(matchArg, roleArg string) {
 
 	line := fmt.Sprintf("Moslik #%d: %s", m.ID, m.OverallStatus)
 	if m.OverallStatus == ridematching.MatchAccepted {
-		if q := findRequest(s, m.PassengerRequestID); q != nil {
+		must(s.SaveRoute(*route))
+		q := findByID(must(s.Requests()), m.PassengerRequestID, func(q rides.PassengerRequest) int64 { return q.ID })
+		if q != nil {
 			q.Status = rides.PassengerRequestAccepted
+			must(s.SaveRequest(*q))
 		}
 		line += fmt.Sprintf(" · yo'nalishda %d joy qoldi", route.SeatsRemaining)
 	}
-	save(s)
+	must(s.SaveMatch(*m))
 	fmt.Println(line)
 }

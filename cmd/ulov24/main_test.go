@@ -158,15 +158,15 @@ func addFeedRoutes(t *testing.T, env []string) {
 func TestFeedFromFile(t *testing.T) {
 	env, _ := dataEnv(t)
 	addFeedRoutes(t, env)
-	mustRun(t, env, wantFeed, "feed")
-	mustRun(t, append(env, "TZ=America/New_York"), wantFeed, "feed")
-	mustRun(t, env, strings.Join(strings.Split(wantFeed, "\n")[:2], "\n"), "feed", "toshkent", "samarqand")
+	mustRun(t, env, wantFeed+"\nKo'rsatildi: 3 / 3", "feed")
+	mustRun(t, append(env, "TZ=America/New_York"), wantFeed+"\nKo'rsatildi: 3 / 3", "feed")
+	mustRun(t, env, strings.Join(strings.Split(wantFeed, "\n")[:2], "\n")+"\nKo'rsatildi: 2 / 2", "feed", "toshkent", "samarqand")
 }
 
 func TestRouteWithoutPrice(t *testing.T) {
 	env, _ := dataEnv(t)
 	mustRun(t, env, "Yo'nalish #1 qo'shildi", "route", "add", "toshkent", "samarqand", "2026-03-20 08:00", "3", "today")
-	mustRun(t, env, "#1 Toshkent → Samarqand · 20.03 08:00 · 3 joy · narx kelishiladi · bugun", "feed")
+	mustRun(t, env, "#1 Toshkent → Samarqand · 20.03 08:00 · 3 joy · narx kelishiladi · bugun\nKo'rsatildi: 1 / 1", "feed")
 }
 
 func TestInputErrors(t *testing.T) {
@@ -225,5 +225,32 @@ func TestBadClock(t *testing.T) {
 	out, code := runCLI(t, []string{"ULOV24_NOW=ertaga"}, "feed")
 	if out != "ULOV24_NOW noto'g'ri: ertaga" || code != 1 {
 		t.Fatalf("got %q, code %d", out, code)
+	}
+}
+
+func TestFeedFirstPage(t *testing.T) {
+	env, _ := dataEnv(t)
+	for i := 1; i <= 12; i++ {
+		mustRun(t, env, fmt.Sprintf("Yo'nalish #%d qo'shildi", i),
+			"route", "add", "toshkent", "samarqand", fmt.Sprintf("2026-03-21 %02d:00", i), "3", "planned")
+	}
+	out, code := runCLI(t, env, "feed")
+	lines := strings.Split(out, "\n")
+	if code != 0 || len(lines) != 11 || lines[10] != "Ko'rsatildi: 10 / 12" {
+		t.Fatalf("got %d lines, code %d, last %q", len(lines), code, lines[len(lines)-1])
+	}
+}
+
+func TestStoreLog(t *testing.T) {
+	env, _ := dataEnv(t)
+	cmd := exec.Command(bin, "route", "add", "toshkent", "samarqand", "2026-03-20 08:00", "3", "today")
+	cmd.Env = append(append(os.Environ(), env...), "ULOV24_LOG=1")
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(stderr.String(), "store: SaveRoute #1") {
+		t.Fatalf("stderr = %q", stderr.String())
 	}
 }

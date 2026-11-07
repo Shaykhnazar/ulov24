@@ -34,8 +34,11 @@ go test ./...
 | `c1-m5` | Go asoslari, 5-modul | Shaharlar map'i, tomon bo'yicha indeks, lenta: `ulov24 cities`, `ulov24 feed toshkent samarqand` |
 | `c1-m6` | Go asoslari, 6-modul | Metodlar, pointerlar, ikki tomonlama rozilik va joy band qilish: `ulov24 accept-demo` |
 | `c1-m7` | Go asoslari, 7-modul | Paketlar (`internal/rides`, `internal/ridematching`, `internal/store`), xatolar `errors.Is` bilan, JSON fayl: `route add`, `request add`, `match`, `accept` |
+| `c1-m8` | Go asoslari, 8-modul | Kichik interfeyslar (`store.Store`), embedding (`FileStore`, `LoggingStore`), generics (`Page[T]`) |
 
-Bosqichni ochish: `git checkout c1-m1`.
+Bosqichni ochish: `git checkout c1-m3` (istalgan tag).
+
+Buyruqlar ro'yxati: `go run ./cmd/ulov24`.
 
 ## Litsenziya
 
