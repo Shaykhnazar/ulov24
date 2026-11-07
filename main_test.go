@@ -93,6 +93,49 @@ func TestModes(t *testing.T) {
 	}
 }
 
+// fixedNow is the clock every test runs at: 20 March 2026, 06:00 in Tashkent.
+const fixedNow = "ULOV24_NOW=2026-03-20T06:00:00+05:00"
+
+const wantSampleMatches = "So'rov #1 (2 kishi): yo'nalish #1\n" +
+	"So'rov #2 (1 kishi): yo'nalish #2\n" +
+	"So'rov #3 (5 kishi): mos yo'nalish yo'q\n" +
+	"So'rov #4 (1 kishi): mos yo'nalish yo'q"
+
+func TestMatchSample(t *testing.T) {
+	out, code := runCLI(t, []string{fixedNow}, "match")
+	if out != wantSampleMatches || code != 0 {
+		t.Fatalf("got %q, code %d", out, code)
+	}
+}
+
+func TestMatchIgnoresMachineZone(t *testing.T) {
+	out, code := runCLI(t, []string{fixedNow, "TZ=America/New_York"}, "match")
+	if out != wantSampleMatches || code != 0 {
+		t.Fatalf("got %q, code %d", out, code)
+	}
+}
+
+func TestRoutesSample(t *testing.T) {
+	out, code := runCLI(t, []string{fixedNow, "TZ=America/New_York"}, "routes")
+	lines := strings.Split(out, "\n")
+	if code != 0 || len(lines) != 4 {
+		t.Fatalf("got %q, code %d", out, code)
+	}
+	if want := "#1 Toshkent → Samarqand · 20.03 08:00 · 3 joy · 150 000 so'm · bugun"; lines[0] != want {
+		t.Errorf("line 1 = %q, want %q", lines[0], want)
+	}
+	if !strings.HasSuffix(lines[3], "· eskirgan") {
+		t.Errorf("line 4 = %q, want it to end with · eskirgan", lines[3])
+	}
+}
+
+func TestBadClock(t *testing.T) {
+	out, code := runCLI(t, []string{"ULOV24_NOW=ertaga"}, "match")
+	if out != "ULOV24_NOW noto'g'ri: ertaga" || code != 1 {
+		t.Fatalf("got %q, code %d", out, code)
+	}
+}
+
 func TestUnknownCommand(t *testing.T) {
 	out, code := runCLI(t, nil, "foo")
 	if out != "Noma'lum buyruq: foo" || code != 1 {
