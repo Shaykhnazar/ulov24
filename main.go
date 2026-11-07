@@ -8,7 +8,7 @@ import (
 )
 
 // Version — dasturning qaysi bosqichda ekani (git tag bilan bir xil).
-const Version = "c1-m3"
+const Version = "c1-m4"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -22,16 +22,8 @@ func main() {
 		current := now()
 		routes, _ := sampleData(current)
 		for _, r := range routes {
-			label := ""
-			switch r.TripMode {
-			case TripModeNow:
-				label = "hozir"
-			case TripModeToday:
-				label = "bugun"
-			case TripModePlanned:
-				label = "rejali"
-			}
-			if current.After(r.DepartureAt) {
+			label := r.TripMode.Label()
+			if isRouteExpired(r, current) {
 				label = "eskirgan"
 			}
 			fmt.Printf("#%d %s → %s · %s · %d joy · %s · %s\n",
@@ -43,22 +35,11 @@ func main() {
 		current := now()
 		routes, requests := sampleData(current)
 		for _, q := range requests {
+			sameWay := directionFilter(q.FromLocationID, q.ToLocationID)
 			found := ""
 			for _, r := range routes {
-				if r.FromLocationID != q.FromLocationID || r.ToLocationID != q.ToLocationID {
-					continue // boshqa yo'nalish
-				}
-				if r.Status != DriverRouteOpen || current.After(r.DepartureAt) {
-					continue // yopilgan yoki eskirgan
-				}
-				if r.DepartureAt.Before(q.DesiredDepartureFrom) || r.DepartureAt.After(q.DesiredDepartureTo) {
-					continue // vaqt to'g'ri kelmaydi
-				}
-				if r.SeatsRemaining < q.PassengerCount {
-					continue // joy yetmaydi
-				}
-				if r.DriverUserID == q.PassengerUserID {
-					continue // o'zi bilan o'zi
+				if !sameWay(r) || !compatible(r, q, current) {
+					continue
 				}
 				if found != "" {
 					found += ", "
