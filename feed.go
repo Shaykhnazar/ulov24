@@ -29,7 +29,7 @@ func IndexByDirection(routes []DriverRoute) map[Direction][]DriverRoute {
 func Feed(routes []DriverRoute, now time.Time) []DriverRoute {
 	var feed []DriverRoute
 	for _, r := range routes {
-		if r.Status == DriverRouteOpen && !isRouteExpired(r, now) {
+		if r.Status == DriverRouteOpen && !r.IsExpired(now) {
 			feed = append(feed, r)
 		}
 	}
@@ -47,5 +47,13 @@ func routeLine(r DriverRoute, label string) string {
 	return fmt.Sprintf("#%d %s → %s · %s · %d joy · %s · %s",
 		r.ID, CityNames[r.FromLocationID], CityNames[r.ToLocationID],
 		r.DepartureAt.In(Tashkent).Format("02.01 15:04"),
-		r.SeatsRemaining, FormatSum(r.PricePerSeat), label)
+		r.SeatsRemaining, priceText(r.PricePerSeat), label)
+}
+
+// priceText: narx bo'lsa "150 000 so'm", bo'lmasa "narx kelishiladi".
+func priceText(price *int) string {
+	if price == nil {
+		return "narx kelishiladi"
+	}
+	return FormatSum(*price)
 }

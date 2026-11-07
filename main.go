@@ -8,12 +8,12 @@ import (
 )
 
 // Version — dasturning qaysi bosqichda ekani (git tag bilan bir xil).
-const Version = "c1-m5"
+const Version = "c1-m6"
 
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Ishlatish: ulov24 <buyruq>")
-		fmt.Println("Buyruqlar: version, modes, price <son>, cities, routes, feed [qayerdan qayerga], match")
+		fmt.Println("Buyruqlar: version, modes, price <son>, cities, routes, feed [qayerdan qayerga], match, accept-demo")
 		return
 	}
 
@@ -23,7 +23,7 @@ func main() {
 		routes, _ := sampleData(current)
 		for _, r := range routes {
 			label := r.TripMode.Label()
-			if isRouteExpired(r, current) {
+			if r.IsExpired(current) {
 				label = "eskirgan"
 			}
 			fmt.Println(routeLine(r, label))
@@ -50,6 +50,28 @@ func main() {
 		}
 		for _, r := range Feed(routes, current) {
 			fmt.Println(routeLine(r, r.TripMode.Label()))
+		}
+	case "accept-demo":
+		routes, _ := sampleData(now())
+		route := &routes[0] // 1-yo'nalish: 3 joy
+		m := RideMatch{
+			RideMatchState: RideMatchState{ID: 1, DriverStatus: DualStatusPending,
+				PassengerStatus: DualStatusPending, OverallStatus: MatchPending},
+			DriverRouteID: route.ID, PassengerRequestID: 1, PassengerCount: 2,
+		}
+		if err := m.Accept(RolePassenger, route); err != nil {
+			fmt.Println("Xato:", err)
+			os.Exit(1)
+		}
+		fmt.Println("Yo'lovchi qabul qildi:", m.OverallStatus)
+		if err := m.Accept(RoleDriver, route); err != nil {
+			fmt.Println("Xato:", err)
+			os.Exit(1)
+		}
+		fmt.Println("Haydovchi qabul qildi:", m.OverallStatus)
+		fmt.Printf("Yo'nalish #%d: %d joy qoldi\n", route.ID, route.SeatsRemaining)
+		if err := m.Accept(RoleDriver, route); err != nil {
+			fmt.Println("Qayta qabul:", err)
 		}
 	case "match":
 		current := now()

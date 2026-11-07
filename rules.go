@@ -12,16 +12,11 @@ func departureInWindow(dep, from, to time.Time) bool {
 	return !dep.Before(from) && !dep.After(to)
 }
 
-// isRouteExpired: jo'nash vaqti o'tib ketgan.
-func isRouteExpired(r DriverRoute, now time.Time) bool {
-	return now.After(r.DepartureAt)
-}
-
 // compatible: yo'nalish shu so'rovga to'g'ri keladimi.
 func compatible(r DriverRoute, q PassengerRequest, now time.Time) bool {
 	return sameDirection(r, q) &&
 		r.Status == DriverRouteOpen &&
-		!isRouteExpired(r, now) &&
+		!r.IsExpired(now) &&
 		departureInWindow(r.DepartureAt, q.DesiredDepartureFrom, q.DesiredDepartureTo) &&
 		r.SeatsRemaining >= q.PassengerCount &&
 		r.DriverUserID != q.PassengerUserID

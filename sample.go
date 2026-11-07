@@ -11,16 +11,16 @@ func sampleData(now time.Time) ([]DriverRoute, []PassengerRequest) {
 	routes := []DriverRoute{
 		{ID: routeID(), DriverUserID: 101, FromLocationID: CityTashkent, ToLocationID: CitySamarkand,
 			DepartureAt: now.Add(2 * time.Hour), SeatsTotal: 3, SeatsRemaining: 3,
-			PricePerSeat: 150000, TripMode: TripModeToday, Status: DriverRouteOpen},
+			PricePerSeat: price(150000), TripMode: TripModeToday, Status: DriverRouteOpen},
 		{ID: routeID(), DriverUserID: 102, FromLocationID: CityTashkent, ToLocationID: CitySamarkand,
 			DepartureAt: now.Add(30 * time.Minute), SeatsTotal: 1, SeatsRemaining: 1,
-			PricePerSeat: 140000, TripMode: TripModeNow, Status: DriverRouteOpen},
+			PricePerSeat: price(140000), TripMode: TripModeNow, Status: DriverRouteOpen},
 		{ID: routeID(), DriverUserID: 103, FromLocationID: CityTashkent, ToLocationID: CityBukhara,
 			DepartureAt: now.Add(26 * time.Hour), SeatsTotal: 4, SeatsRemaining: 4,
-			PricePerSeat: 200000, TripMode: TripModePlanned, Status: DriverRouteOpen},
+			PricePerSeat: price(200000), TripMode: TripModePlanned, Status: DriverRouteOpen},
 		{ID: routeID(), DriverUserID: 104, FromLocationID: CityFergana, ToLocationID: CityTashkent,
 			DepartureAt: now.Add(-1 * time.Hour), SeatsTotal: 2, SeatsRemaining: 2,
-			PricePerSeat: 120000, TripMode: TripModeToday, Status: DriverRouteOpen},
+			PricePerSeat: price(120000), TripMode: TripModeToday, Status: DriverRouteOpen},
 	}
 	requests := []PassengerRequest{
 		{ID: requestID(), PassengerUserID: 201, FromLocationID: CityTashkent, ToLocationID: CitySamarkand,
@@ -37,4 +37,9 @@ func sampleData(now time.Time) ([]DriverRoute, []PassengerRequest) {
 			PassengerCount: 1, TripMode: TripModeToday, Status: PassengerRequestOpen},
 	}
 	return routes, requests
+}
+
+// price — narxga pointer: struct maydoni *int bo'lgani uchun.
+func price(n int) *int {
+	return &n
 }

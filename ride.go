@@ -35,7 +35,7 @@ type DriverRoute struct {
 	DepartureAt    time.Time
 	SeatsTotal     int
 	SeatsRemaining int
-	PricePerSeat   int
+	PricePerSeat   *int // nil — narx kelishiladi
 	TripMode       TripMode
 	Status         DriverRouteStatus
 }
@@ -52,4 +52,23 @@ type PassengerRequest struct {
 	PassengerCount       int
 	TripMode             TripMode
 	Status               PassengerRequestStatus
+}
+
+// IsExpired: jo'nash vaqti o'tib ketgan.
+func (r DriverRoute) IsExpired(now time.Time) bool {
+	return now.After(r.DepartureAt)
+}
+
+// Reserve yo'nalishdan count ta joyni band qiladi. Joy yetmasa, yo'nalish
+// o'zgarmaydi va ErrRideCapacityFull qaytadi. Pointer receiver: o'zgarish
+// chaqirgan tomondagi asl yo'nalishda qoladi.
+func (r *DriverRoute) Reserve(count int) error {
+	if count > r.SeatsRemaining {
+		return ErrRideCapacityFull
+	}
+	r.SeatsRemaining -= count
+	if r.SeatsRemaining == 0 {
+		r.Status = DriverRouteFull
+	}
+	return nil
 }

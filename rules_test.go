@@ -57,7 +57,7 @@ func TestCompatibleSample(t *testing.T) {
 	if compatible(routes[2], requests[2], testNow) {
 		t.Error("route 3 has 4 seats, request 3 needs 5")
 	}
-	if isRouteExpired(routes[0], testNow) || !isRouteExpired(routes[3], testNow) {
+	if routes[0].IsExpired(testNow) || !routes[3].IsExpired(testNow) {
 		t.Error("only route 4 is expired")
 	}
 }

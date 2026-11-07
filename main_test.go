@@ -163,6 +163,17 @@ func TestCities(t *testing.T) {
 	}
 }
 
+func TestAcceptDemo(t *testing.T) {
+	out, code := runCLI(t, []string{fixedNow}, "accept-demo")
+	want := "Yo'lovchi qabul qildi: partial\n" +
+		"Haydovchi qabul qildi: accepted\n" +
+		"Yo'nalish #1: 1 joy qoldi\n" +
+		"Qayta qabul: ride match is terminal"
+	if out != want || code != 0 {
+		t.Fatalf("got %q, code %d", out, code)
+	}
+}
+
 func TestBadClock(t *testing.T) {
 	out, code := runCLI(t, []string{"ULOV24_NOW=ertaga"}, "match")
 	if out != "ULOV24_NOW noto'g'ri: ertaga" || code != 1 {

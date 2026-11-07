@@ -32,6 +32,7 @@ go test ./...
 | `c1-m3` | Go asoslari, 3-modul | Namuna safarlarni moslash: `ulov24 routes`, `ulov24 match` |
 | `c1-m4` | Go asoslari, 4-modul | Moslash qoidalari funksiyalarga, tekshiruvlar `error` qaytaradi, closure |
 | `c1-m5` | Go asoslari, 5-modul | Shaharlar map'i, tomon bo'yicha indeks, lenta: `ulov24 cities`, `ulov24 feed toshkent samarqand` |
+| `c1-m6` | Go asoslari, 6-modul | Metodlar, pointerlar, ikki tomonlama rozilik va joy band qilish: `ulov24 accept-demo` |
 
 Bosqichni ochish: `git checkout c1-m1`.
 
