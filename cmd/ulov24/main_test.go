@@ -254,3 +254,61 @@ func TestStoreLog(t *testing.T) {
 		t.Fatalf("stderr = %q", stderr.String())
 	}
 }
+
+func TestAcceptRejectsDepartedRoute(t *testing.T) {
+	env, _ := dataEnv(t)
+	mustRun(t, env, "Yo'nalish #1 qo'shildi", "route", "add", "toshkent", "samarqand", "2026-03-20 08:00", "3", "today")
+	mustRun(t, env, "So'rov #1 qo'shildi", "request", "add", "toshkent", "samarqand", "2026-03-20 07:00", "2026-03-20 09:00", "1", "today")
+	mustRun(t, env, "Moslik #1: so'rov #1 → yo'nalish #1", "match")
+
+	later := append(env, "ULOV24_NOW=2026-03-20T12:00:00+05:00") // the later value wins
+	out, code := runCLI(t, later, "accept", "1", "passenger")
+	if out != "Yo'nalish #1 jo'nab ketgan" || code != 1 {
+		t.Fatalf("got %q, code %d", out, code)
+	}
+}
+
+func TestAcceptOneRoutePerRequest(t *testing.T) {
+	env, _ := dataEnv(t)
+	mustRun(t, env, "Yo'nalish #1 qo'shildi", "route", "add", "toshkent", "samarqand", "2026-03-20 08:00", "3", "today")
+	mustRun(t, env, "Yo'nalish #2 qo'shildi", "route", "add", "toshkent", "samarqand", "2026-03-20 08:30", "3", "today")
+	mustRun(t, env, "So'rov #1 qo'shildi", "request", "add", "toshkent", "samarqand", "2026-03-20 07:00", "2026-03-20 09:00", "2", "today")
+	mustRun(t, env, "Moslik #1: so'rov #1 → yo'nalish #1\nMoslik #2: so'rov #1 → yo'nalish #2", "match")
+	mustRun(t, env, "Moslik #1: partial", "accept", "1", "passenger")
+	mustRun(t, env, "Moslik #1: accepted · yo'nalishda 1 joy qoldi", "accept", "1", "driver")
+
+	out, code := runCLI(t, env, "accept", "2", "passenger")
+	if out != "So'rov #1 allaqachon boshqa yo'nalishda qabul qilingan" || code != 1 {
+		t.Fatalf("got %q, code %d", out, code)
+	}
+	mustRun(t, env, "#1 Toshkent → Samarqand · 20.03 08:00 · 1 joy · narx kelishiladi · bugun\n"+
+		"#2 Toshkent → Samarqand · 20.03 08:30 · 3 joy · narx kelishiladi · bugun\nKo'rsatildi: 2 / 2", "feed")
+}
+
+// TestTashkentTimeOnAnyMachine runs the whole flow on a "New York" machine,
+// with the clock given in UTC (06:00 in Tashkent is 01:00 UTC). Times typed by
+// the user and times printed must both stay in Tashkent time.
+func TestTashkentTimeOnAnyMachine(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "d.json")
+	env := []string{"ULOV24_NOW=2026-03-20T01:00:00Z", "TZ=America/New_York", "ULOV24_DATA=" + path}
+	mustRun(t, env, "Yo'nalish #1 qo'shildi", "route", "add", "toshkent", "samarqand", "2026-03-20 23:30", "3", "today")
+	mustRun(t, env, "#1 Toshkent → Samarqand · 20.03 23:30 · 3 joy · narx kelishiladi · bugun\nKo'rsatildi: 1 / 1", "feed")
+
+	out, code := runCLI(t, env, "route", "add", "toshkent", "samarqand", "2026-03-21 00:30", "3", "today")
+	if out != `"bugun" rejimida jo'nash bugun bo'lishi kerak` || code != 1 {
+		t.Fatalf("next Tashkent day accepted as today: got %q, code %d", out, code)
+	}
+}
+
+// TestFeedPrintsStoredUTCInTashkentTime: a data file may hold times with any
+// offset (a database returns UTC). The feed must still print Tashkent time.
+func TestFeedPrintsStoredUTCInTashkentTime(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "d.json")
+	data := `{"driver_routes":[{"id":1,"driver_user_id":1,"from_location_id":1,"to_location_id":2,` +
+		`"departure_at":"2026-03-20T18:30:00Z","seats_total":3,"seats_remaining":3,"trip_mode":"today","status":"open"}]}`
+	if err := os.WriteFile(path, []byte(data), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	env := []string{"ULOV24_NOW=2026-03-20T01:00:00Z", "TZ=America/New_York", "ULOV24_DATA=" + path}
+	mustRun(t, env, "#1 Toshkent → Samarqand · 20.03 23:30 · 3 joy · narx kelishiladi · bugun\nKo'rsatildi: 1 / 1", "feed")
+}

@@ -285,6 +285,7 @@ func accept(matchArg, roleArg string) {
 		fail("Moslik raqami son bo'lishi kerak: " + matchArg)
 	}
 
+	current := now()
 	s := openStore()
 	m := findByID(must(s.Matches()), id, func(m ridematching.RideMatch) int64 { return m.ID })
 	if m == nil {
@@ -293,6 +294,18 @@ func accept(matchArg, roleArg string) {
 	route := findByID(must(s.Routes()), m.DriverRouteID, func(r rides.DriverRoute) int64 { return r.ID })
 	if route == nil {
 		fail(fmt.Sprintf("Moslikdagi yo'nalish topilmadi: %d", m.DriverRouteID))
+	}
+
+	// Moslik yaratilgandan beri vaziyat o'zgargan bo'lishi mumkin: qayta tekshiramiz.
+	if route.IsExpired(current) {
+		fail(fmt.Sprintf("Yo'nalish #%d jo'nab ketgan", route.ID))
+	}
+	if route.Status != rides.DriverRouteOpen && route.Status != rides.DriverRouteFull {
+		fail(fmt.Sprintf("Yo'nalish #%d yopilgan", route.ID))
+	}
+	q := findByID(must(s.Requests()), m.PassengerRequestID, func(q rides.PassengerRequest) int64 { return q.ID })
+	if q != nil && q.Status == rides.PassengerRequestAccepted && m.OverallStatus != ridematching.MatchAccepted {
+		fail(fmt.Sprintf("So'rov #%d allaqachon boshqa yo'nalishda qabul qilingan", q.ID))
 	}
 
 	err = m.Accept(role, route)
@@ -309,7 +322,6 @@ func accept(matchArg, roleArg string) {
 	line := fmt.Sprintf("Moslik #%d: %s", m.ID, m.OverallStatus)
 	if m.OverallStatus == ridematching.MatchAccepted {
 		must(s.SaveRoute(*route))
-		q := findByID(must(s.Requests()), m.PassengerRequestID, func(q rides.PassengerRequest) int64 { return q.ID })
 		if q != nil {
 			q.Status = rides.PassengerRequestAccepted
 			must(s.SaveRequest(*q))

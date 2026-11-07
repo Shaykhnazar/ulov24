@@ -71,3 +71,17 @@ func TestReserve(t *testing.T) {
 		t.Fatalf("reserve all: err=%v seats=%d status=%s", err, r.SeatsRemaining, r.Status)
 	}
 }
+
+// TestValidateTripModeWithUTCTimes: callers may pass times in any zone (a
+// database returns UTC). "Today" still means the Tashkent calendar day.
+func TestValidateTripModeWithUTCTimes(t *testing.T) {
+	now := time.Date(2026, 3, 20, 1, 0, 0, 0, time.UTC)         // 06:00 in Tashkent
+	lateToday := time.Date(2026, 3, 20, 18, 30, 0, 0, time.UTC) // 23:30 in Tashkent
+	tomorrow := time.Date(2026, 3, 20, 19, 30, 0, 0, time.UTC)  // 00:30 next day in Tashkent
+	if err := ValidateTripMode(TripModeToday, lateToday, now); err != nil {
+		t.Errorf("23:30 Tashkent is today: %v", err)
+	}
+	if err := ValidateTripMode(TripModeToday, tomorrow, now); err == nil {
+		t.Error("00:30 next Tashkent day must not count as today")
+	}
+}
