@@ -55,7 +55,7 @@ func runCLI(t *testing.T, env []string, args ...string) (string, int) {
 
 func TestVersion(t *testing.T) {
 	out, code := runCLI(t, nil, "version")
-	if out != "ulov24 c1-m1" || code != 0 {
+	if out != "ulov24 "+Version || code != 0 {
 		t.Fatalf("got %q, code %d", out, code)
 	}
 }
@@ -63,6 +63,32 @@ func TestVersion(t *testing.T) {
 func TestNoArgs(t *testing.T) {
 	out, code := runCLI(t, nil)
 	if !strings.HasPrefix(out, "Ishlatish: ulov24 <buyruq>") || code != 0 {
+		t.Fatalf("got %q, code %d", out, code)
+	}
+}
+
+func TestPrice(t *testing.T) {
+	cases := []struct {
+		arg  string
+		want string
+		code int
+	}{
+		{"150000", "150 000 so'm", 0},
+		{"abc", "Narx butun son bo'lishi kerak: abc", 1},
+		{"-5", "Narx manfiy bo'lishi mumkin emas: -5", 1},
+	}
+	for _, c := range cases {
+		out, code := runCLI(t, nil, "price", c.arg)
+		if out != c.want || code != c.code {
+			t.Errorf("price %s: got %q, code %d", c.arg, out, code)
+		}
+	}
+}
+
+func TestModes(t *testing.T) {
+	out, code := runCLI(t, nil, "modes")
+	want := "now — hozir\ntoday — bugun\nplanned — rejali"
+	if out != want || code != 0 {
 		t.Fatalf("got %q, code %d", out, code)
 	}
 }

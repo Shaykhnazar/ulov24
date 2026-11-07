@@ -28,6 +28,7 @@ go test ./...
 | Tag | Kurs, modul | Nima qo'shildi |
 |---|---|---|
 | `c1-m1` | Go asoslari, 1-modul | Repozitoriy, birinchi dastur: `ulov24 version` |
+| `c1-m2` | Go asoslari, 2-modul | Safar rejimlari, shaharlar, narx: `ulov24 modes`, `ulov24 price 150000` |
 
 Bosqichni ochish: `git checkout c1-m1`.
 
