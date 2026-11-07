@@ -1,11 +1,13 @@
-package main
+package ridematching
 
 import (
 	"slices"
 	"testing"
+
+	"github.com/Shaykhnazar/ulov24/internal/rides"
 )
 
-func routeIDs(routes []DriverRoute) []int64 {
+func routeIDs(routes []rides.DriverRoute) []int64 {
 	var ids []int64
 	for _, r := range routes {
 		ids = append(ids, r.ID)
@@ -32,7 +34,7 @@ func TestFeedDoesNotReorderInput(t *testing.T) {
 func TestIndexByDirection(t *testing.T) {
 	routes, _ := sampleData(testNow)
 	index := IndexByDirection(routes)
-	got := routeIDs(index[Direction{From: CityTashkent, To: CitySamarkand}])
+	got := routeIDs(index[Direction{From: rides.CityTashkent, To: rides.CitySamarkand}])
 	if want := []int64{1, 2}; !slices.Equal(got, want) {
 		t.Fatalf("Toshkent → Samarqand = %v, want %v", got, want)
 	}

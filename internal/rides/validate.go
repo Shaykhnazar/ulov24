@@ -1,20 +1,20 @@
-package main
+package rides
 
 import (
 	"fmt"
 	"time"
 )
 
-// validateSeats: joylar (yoki yo'lovchilar) soni 1 dan MaxSeats gacha.
-func validateSeats(n int) error {
+// ValidateSeats: joylar (yoki yo'lovchilar) soni 1 dan MaxSeats gacha.
+func ValidateSeats(n int) error {
 	if n < 1 || n > MaxSeats {
 		return fmt.Errorf("joylar soni 1 dan %d gacha bo'lishi kerak: %d", MaxSeats, n)
 	}
 	return nil
 }
 
-// validateTripMode jo'nash vaqti tanlangan rejimga mosligini tekshiradi.
-func validateTripMode(mode TripMode, departure, now time.Time) error {
+// ValidateTripMode jo'nash vaqti tanlangan rejimga mosligini tekshiradi.
+func ValidateTripMode(mode TripMode, departure, now time.Time) error {
 	switch mode {
 	case TripModeNow:
 		if departure.Before(now) || departure.After(now.Add(3*time.Hour)) {

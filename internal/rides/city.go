@@ -1,4 +1,4 @@
-package main
+package rides
 
 // Shaharlar raqami. Keyinroq ular ma'lumotlar bazasidagi locations jadvalining
 // id'lari bo'ladi.

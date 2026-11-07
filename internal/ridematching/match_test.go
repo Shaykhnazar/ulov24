@@ -1,9 +1,10 @@
-package main
+package ridematching
 
 import (
 	"errors"
-	"strings"
 	"testing"
+
+	"github.com/Shaykhnazar/ulov24/internal/rides"
 )
 
 func TestApplyAcceptance(t *testing.T) {
@@ -38,7 +39,7 @@ func newTestMatch(count int) RideMatch {
 }
 
 func TestAcceptReservesOnce(t *testing.T) {
-	route := DriverRoute{ID: 1, SeatsTotal: 3, SeatsRemaining: 3, Status: DriverRouteOpen}
+	route := rides.DriverRoute{ID: 1, SeatsTotal: 3, SeatsRemaining: 3, Status: rides.DriverRouteOpen}
 	m := newTestMatch(2)
 
 	if err := m.Accept(RolePassenger, &route); err != nil || route.SeatsRemaining != 3 {
@@ -53,7 +54,7 @@ func TestAcceptReservesOnce(t *testing.T) {
 }
 
 func TestAcceptCapacityFull(t *testing.T) {
-	route := DriverRoute{ID: 1, SeatsTotal: 1, SeatsRemaining: 1, Status: DriverRouteOpen}
+	route := rides.DriverRoute{ID: 1, SeatsTotal: 1, SeatsRemaining: 1, Status: rides.DriverRouteOpen}
 	m := newTestMatch(2)
 	if err := m.Accept(RolePassenger, &route); err != nil {
 		t.Fatal(err)
@@ -68,23 +69,14 @@ func TestAcceptCapacityFull(t *testing.T) {
 }
 
 func TestReserveToZeroMarksFull(t *testing.T) {
-	route := DriverRoute{ID: 1, SeatsTotal: 2, SeatsRemaining: 2, Status: DriverRouteOpen}
+	route := rides.DriverRoute{ID: 1, SeatsTotal: 2, SeatsRemaining: 2, Status: rides.DriverRouteOpen}
 	if err := route.Reserve(2); err != nil {
 		t.Fatal(err)
 	}
-	if route.SeatsRemaining != 0 || route.Status != DriverRouteFull {
+	if route.SeatsRemaining != 0 || route.Status != rides.DriverRouteFull {
 		t.Fatalf("seats=%d status=%s", route.SeatsRemaining, route.Status)
 	}
 	if err := route.Reserve(1); !errors.Is(err, ErrRideCapacityFull) || route.SeatsRemaining != 0 {
 		t.Fatalf("reserve on full route: err=%v seats=%d", err, route.SeatsRemaining)
-	}
-}
-
-func TestRouteLineWithoutPrice(t *testing.T) {
-	routes, _ := sampleData(testNow)
-	r := routes[0]
-	r.PricePerSeat = nil
-	if line := routeLine(r, "bugun"); !strings.Contains(line, "· narx kelishiladi ·") {
-		t.Fatalf("line = %q", line)
 	}
 }

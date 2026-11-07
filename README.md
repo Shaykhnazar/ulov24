@@ -14,7 +14,7 @@ ko'rishingiz mumkin.
 Go 1.26 yoki yangiroq kerak.
 
 ```bash
-go run . version
+go run ./cmd/ulov24 version
 ```
 
 Testlar:
@@ -33,6 +33,7 @@ go test ./...
 | `c1-m4` | Go asoslari, 4-modul | Moslash qoidalari funksiyalarga, tekshiruvlar `error` qaytaradi, closure |
 | `c1-m5` | Go asoslari, 5-modul | Shaharlar map'i, tomon bo'yicha indeks, lenta: `ulov24 cities`, `ulov24 feed toshkent samarqand` |
 | `c1-m6` | Go asoslari, 6-modul | Metodlar, pointerlar, ikki tomonlama rozilik va joy band qilish: `ulov24 accept-demo` |
+| `c1-m7` | Go asoslari, 7-modul | Paketlar (`internal/rides`, `internal/ridematching`, `internal/store`), xatolar `errors.Is` bilan, JSON fayl: `route add`, `request add`, `match`, `accept` |
 
 Bosqichni ochish: `git checkout c1-m1`.
 

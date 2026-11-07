@@ -1,4 +1,4 @@
-package main
+package rides
 
 // TripMode — safar qachonligi. Qiymatlar matn: ma'lumotlar bazasida ham aynan
 // shu so'zlar saqlanadi, shuning uchun iota emas.

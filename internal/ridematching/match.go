@@ -1,6 +1,10 @@
-package main
+package ridematching
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/Shaykhnazar/ulov24/internal/rides"
+)
 
 // Bu fayldagi turlar va ApplyAcceptance manapochta'dagi Ulov24 kodidan
 // (internal/ridematching) aynan shu nomlar bilan olingan: 2-kursda ular
@@ -9,7 +13,7 @@ import "errors"
 var (
 	ErrUnauthorizedActor = errors.New("actor is not part of ride match")
 	ErrTerminalRideMatch = errors.New("ride match is terminal")
-	ErrRideCapacityFull  = errors.New("ride route does not have enough remaining seats")
+	ErrRideCapacityFull  = rides.ErrRideCapacityFull // bitta qiymat ikkala paketda
 )
 
 // UserRole — moslikda kim harakat qilyapti.
@@ -45,10 +49,10 @@ const (
 
 // RideMatchState — moslikning ikki tomondan javoblari va umumiy holati.
 type RideMatchState struct {
-	ID              int64
-	DriverStatus    DualStatus
-	PassengerStatus DualStatus
-	OverallStatus   MatchStatus
+	ID              int64       `json:"id"`
+	DriverStatus    DualStatus  `json:"driver_status"`
+	PassengerStatus DualStatus  `json:"passenger_status"`
+	OverallStatus   MatchStatus `json:"overall_status"`
 }
 
 // ApplyAcceptance bir tomonning "qabul qildim" javobini qo'llaydi va yangi
@@ -90,16 +94,16 @@ func isTerminal(status MatchStatus) bool {
 // RideMatch — bitta yo'nalish va bitta so'rov orasidagi moslik.
 type RideMatch struct {
 	RideMatchState
-	DriverRouteID      int64
-	PassengerRequestID int64
-	PassengerCount     int
+	DriverRouteID      int64 `json:"driver_route_id"`
+	PassengerRequestID int64 `json:"passenger_request_id"`
+	PassengerCount     int   `json:"passenger_count"`
 }
 
 // Accept bir tomonning roziligini yozadi. Ikkala tomon rozi bo'lganda
 // yo'nalishdan joy band qilinadi. route pointer orqali keladi: aks holda biz
 // yo'nalishning nusxasini o'zgartirgan bo'lardik, asl joylar soni esa
 // o'zgarmay qolardi.
-func (m *RideMatch) Accept(role UserRole, route *DriverRoute) error {
+func (m *RideMatch) Accept(role UserRole, route *rides.DriverRoute) error {
 	next, bothAccepted, err := ApplyAcceptance(m.RideMatchState, role)
 	if err != nil {
 		return err
