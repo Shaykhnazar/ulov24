@@ -129,6 +129,40 @@ func TestRoutesSample(t *testing.T) {
 	}
 }
 
+const wantSampleFeed = "#2 Toshkent → Samarqand · 20.03 06:30 · 1 joy · 140 000 so'm · hozir\n" +
+	"#1 Toshkent → Samarqand · 20.03 08:00 · 3 joy · 150 000 so'm · bugun\n" +
+	"#3 Toshkent → Buxoro · 21.03 08:00 · 4 joy · 200 000 so'm · rejali"
+
+func TestFeedSample(t *testing.T) {
+	out, code := runCLI(t, []string{fixedNow}, "feed")
+	if out != wantSampleFeed || code != 0 {
+		t.Fatalf("got %q, code %d", out, code)
+	}
+}
+
+func TestFeedOneDirection(t *testing.T) {
+	out, code := runCLI(t, []string{fixedNow}, "feed", "toshkent", "samarqand")
+	want := strings.Join(strings.Split(wantSampleFeed, "\n")[:2], "\n")
+	if out != want || code != 0 {
+		t.Fatalf("got %q, code %d", out, code)
+	}
+}
+
+func TestFeedUnknownCity(t *testing.T) {
+	out, code := runCLI(t, []string{fixedNow}, "feed", "toshkent", "moskva")
+	if out != "Noma'lum shahar: moskva" || code != 1 {
+		t.Fatalf("got %q, code %d", out, code)
+	}
+}
+
+func TestCities(t *testing.T) {
+	out, code := runCLI(t, nil, "cities")
+	want := "1 Toshkent\n2 Samarqand\n3 Buxoro\n4 Farg'ona\n5 Andijon\n6 Namangan"
+	if out != want || code != 0 {
+		t.Fatalf("got %q, code %d", out, code)
+	}
+}
+
 func TestBadClock(t *testing.T) {
 	out, code := runCLI(t, []string{"ULOV24_NOW=ertaga"}, "match")
 	if out != "ULOV24_NOW noto'g'ri: ertaga" || code != 1 {

@@ -8,12 +8,12 @@ import (
 )
 
 // Version — dasturning qaysi bosqichda ekani (git tag bilan bir xil).
-const Version = "c1-m4"
+const Version = "c1-m5"
 
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Ishlatish: ulov24 <buyruq>")
-		fmt.Println("Buyruqlar: version, modes, price <son>, routes, match")
+		fmt.Println("Buyruqlar: version, modes, price <son>, cities, routes, feed [qayerdan qayerga], match")
 		return
 	}
 
@@ -26,10 +26,30 @@ func main() {
 			if isRouteExpired(r, current) {
 				label = "eskirgan"
 			}
-			fmt.Printf("#%d %s → %s · %s · %d joy · %s · %s\n",
-				r.ID, cityName(r.FromLocationID), cityName(r.ToLocationID),
-				r.DepartureAt.In(Tashkent).Format("02.01 15:04"),
-				r.SeatsRemaining, FormatSum(r.PricePerSeat), label)
+			fmt.Println(routeLine(r, label))
+		}
+	case "cities":
+		for id := CityTashkent; id <= CityNamangan; id++ {
+			fmt.Println(id, CityNames[id])
+		}
+	case "feed":
+		current := now()
+		routes, _ := sampleData(current)
+		if len(os.Args) >= 4 {
+			from, ok := ParseCity(os.Args[2])
+			if !ok {
+				fmt.Println("Noma'lum shahar:", os.Args[2])
+				os.Exit(1)
+			}
+			to, ok := ParseCity(os.Args[3])
+			if !ok {
+				fmt.Println("Noma'lum shahar:", os.Args[3])
+				os.Exit(1)
+			}
+			routes = IndexByDirection(routes)[Direction{From: from, To: to}]
+		}
+		for _, r := range Feed(routes, current) {
+			fmt.Println(routeLine(r, r.TripMode.Label()))
 		}
 	case "match":
 		current := now()

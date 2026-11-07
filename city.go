@@ -10,23 +10,3 @@ const (
 	CityAndijan   int64 = 5
 	CityNamangan  int64 = 6
 )
-
-// cityName shahar raqamini nomga aylantiradi.
-func cityName(id int64) string {
-	switch id {
-	case CityTashkent:
-		return "Toshkent"
-	case CitySamarkand:
-		return "Samarqand"
-	case CityBukhara:
-		return "Buxoro"
-	case CityFergana:
-		return "Farg'ona"
-	case CityAndijan:
-		return "Andijon"
-	case CityNamangan:
-		return "Namangan"
-	default:
-		return "?"
-	}
-}
